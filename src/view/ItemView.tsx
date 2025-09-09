@@ -1,77 +1,180 @@
-import { FlatList, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Formik } from 'formik';
+import { FlatList, StyleSheet, View } from "react-native";
+import {
+    Button,
+    Card,
+    Divider,
+    FAB,
+    IconButton,
+    List,
+    Modal,
+    Portal,
+    Text,
+    TextInput
+} from 'react-native-paper';
+import Toast from 'react-native-toast-message';
+import * as Yup from 'yup';
 import { ItemController } from "../controller/ItemController";
-import { useState } from "react";
 import { Item } from "../models/Item";
+
+// Schema de validação
+const validationSchema = Yup.object().shape({
+  title: Yup.string()
+    .min(2, 'O título deve ter pelo menos 2 caracteres')
+    .max(50, 'O título deve ter no máximo 50 caracteres')
+    .required('O título é obrigatório'),
+});
 
 export const ItemView = () => {
     const { items, openAddModal, modalVisible, editingItem, closeModal, deleteItem, updateItem, addItem, openEditModal } = ItemController();
-    const [inputText, setInputText] = useState<string>('');
 
     const renderItem = ({ item }: { item: Item }) => (
-        <TouchableOpacity
-            style={styles.item}
-            onPress={() => openEditModal(item)}
-        >
-            <Text>{item.title}</Text>
-        </TouchableOpacity>
+        <Card style={styles.card} mode="outlined">
+            <List.Item
+                title={item.title}
+                right={(props) => (
+                    <IconButton
+                        {...props}
+                        icon="pencil"
+                        onPress={() => openEditModal(item)}
+                    />
+                )}
+            />
+        </Card>
     );
 
+    const handleSubmit = (values: { title: string }, { resetForm }: any) => {
+        try {
+            if (editingItem) {
+                updateItem(values.title, editingItem);
+                Toast.show({
+                    type: 'success',
+                    text1: 'Sucesso!',
+                    text2: 'Item atualizado com sucesso!',
+                });
+            } else {
+                addItem(values.title);
+                Toast.show({
+                    type: 'success',
+                    text1: 'Sucesso!',
+                    text2: 'Item adicionado com sucesso!',
+                });
+            }
+            resetForm();
+            closeModal();
+        } catch (error) {
+            Toast.show({
+                type: 'error',
+                text1: 'Erro!',
+                text2: 'Ocorreu um erro ao salvar o item.',
+            });
+        }
+    };
+
+    const handleDelete = (item: Item) => {
+        try {
+            deleteItem(item);
+            Toast.show({
+                type: 'success',
+                text1: 'Sucesso!',
+                text2: 'Item excluído com sucesso!',
+            });
+        } catch (error) {
+            Toast.show({
+                type: 'error',
+                text1: 'Erro!',
+                text2: 'Ocorreu um erro ao excluir o item.',
+            });
+        }
+    };
 
     return (
-        <View>
-            <Text style={styles.title}>Lista de Itens</Text>
-
-            <TouchableOpacity style={styles.addButton} onPress={openAddModal}>
-                <Text>Adicionar Item</Text>
-            </TouchableOpacity>
+        <View style={styles.container}>
+            <Text variant="headlineMedium" style={styles.title}>
+                Lista de Itens
+            </Text>
 
             <FlatList
                 data={items}
                 renderItem={renderItem}
                 keyExtractor={item => item.id}
+                contentContainerStyle={styles.listContainer}
+                ItemSeparatorComponent={() => <Divider style={styles.divider} />}
             />
 
-            <Modal
-                visible={modalVisible}
-                transparent={true}
-                animationType="fade"
-            >
-                <View style={styles.modalOverlay}>
-                    <View style={styles.dialog}>
-                        <Text style={styles.modalTitle}>
-                            {editingItem ? 'Editar Item' : 'Novo Item'}
-                        </Text>
+            <FAB
+                icon="plus"
+                style={styles.fab}
+                onPress={openAddModal}
+            />
 
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Digite o título"
-                            value={inputText}
-                            onChangeText={setInputText}
-                        />
-
-                        <View style={styles.buttons}>
-                            <TouchableOpacity style={styles.button} onPress={closeModal}>
-                                <Text style={styles.buttonText}>Cancelar</Text>
-                            </TouchableOpacity>
-
-                            {editingItem && (
-                                <TouchableOpacity style={[styles.button, styles.deleteButton]} onPress={() => deleteItem(editingItem)}>
-                                    <Text style={[styles.buttonText, styles.deleteButtonText]}>Excluir</Text>
-                                </TouchableOpacity>
-                            )}
-
-                            <TouchableOpacity
-                                style={styles.button}
-                                onPress={() => editingItem ? updateItem(inputText, editingItem) : addItem(inputText)}
+            <Portal>
+                <Modal
+                    visible={modalVisible}
+                    onDismiss={closeModal}
+                    contentContainerStyle={styles.modalContainer}
+                >
+                    <Card>
+                        <Card.Title title={editingItem ? 'Editar Item' : 'Novo Item'} />
+                        <Card.Content>
+                            <Formik
+                                initialValues={{ title: editingItem?.title || '' }}
+                                validationSchema={validationSchema}
+                                onSubmit={handleSubmit}
+                                enableReinitialize
                             >
-                                <Text style={styles.buttonText}>
-                                    {editingItem ? 'Salvar' : 'Adicionar'}
-                                </Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
+                                {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
+                                    <>
+                                        <TextInput
+                                            label="Título do Item"
+                                            value={values.title}
+                                            onChangeText={handleChange('title')}
+                                            onBlur={handleBlur('title')}
+                                            error={touched.title && !!errors.title}
+                                            mode="outlined"
+                                            style={styles.input}
+                                        />
+                                        {touched.title && errors.title && (
+                                            <Text variant="bodySmall" style={styles.errorText}>
+                                                {errors.title}
+                                            </Text>
+                                        )}
+
+                                        <View style={styles.buttonContainer}>
+                                            <Button
+                                                mode="outlined"
+                                                onPress={closeModal}
+                                                style={styles.button}
+                                            >
+                                                Cancelar
+                                            </Button>
+
+                                            {editingItem && (
+                                                <Button
+                                                    mode="contained"
+                                                    buttonColor="#d32f2f"
+                                                    onPress={() => handleDelete(editingItem)}
+                                                    style={styles.button}
+                                                >
+                                                    Excluir
+                                                </Button>
+                                            )}
+
+                                            <Button
+                                                mode="contained"
+                                                onPress={() => handleSubmit()}
+                                                style={styles.button}
+                                            >
+                                                {editingItem ? 'Salvar' : 'Adicionar'}
+                                            </Button>
+                                        </View>
+                                    </>
+                                )}
+                            </Formik>
+                        </Card.Content>
+                    </Card>
+                </Modal>
+            </Portal>
         </View>
     );
 }
@@ -79,71 +182,48 @@ export const ItemView = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 20,
-        paddingTop: 50,
+        padding: 16,
     },
     title: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginBottom: 20,
+        marginBottom: 16,
+        textAlign: 'center',
     },
-    addButton: {
-        backgroundColor: '#ddd',
-        padding: 10,
-        marginBottom: 20,
-        alignItems: 'center',
+    listContainer: {
+        paddingBottom: 100, // Espaço para o FAB
     },
-    item: {
-        padding: 15,
-        borderBottomWidth: 1,
-        borderBottomColor: '#ccc',
+    card: {
+        marginVertical: 4,
+        backgroundColor: '#fff',
     },
-    modalOverlay: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    divider: {
+        marginVertical: 4,
     },
-    dialog: {
-        backgroundColor: 'white',
+    fab: {
+        position: 'absolute',
+        margin: 16,
+        right: 0,
+        bottom: 0,
+    },
+    modalContainer: {
         padding: 20,
         margin: 20,
         borderRadius: 8,
-        width: '80%',
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        textAlign: 'center',
     },
     input: {
-        borderWidth: 1,
-        borderColor: '#ccc',
-        padding: 10,
-        marginBottom: 20,
+        marginBottom: 8,
     },
-    buttons: {
+    errorText: {
+        color: '#d32f2f',
+        marginBottom: 16,
+        marginTop: -8,
+    },
+    buttonContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginTop: 20,
+        marginTop: 16,
     },
     button: {
-        backgroundColor: '#ddd',
-        padding: 8,
         flex: 1,
         marginHorizontal: 4,
-        alignItems: 'center',
-        borderRadius: 4,
-    },
-    buttonText: {
-        fontSize: 14,
-        fontWeight: '500',
-    },
-    deleteButton: {
-        backgroundColor: '#ffebee',
-    },
-    deleteButtonText: {
-        color: '#d32f2f',
     },
 });

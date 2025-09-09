@@ -1,5 +1,5 @@
 {
-  "name": "atividade_02",
+  "name": "atividade_03",
   "version": "1.0.0",
   "main": "index.ts",
   "scripts": {
@@ -9,13 +9,17 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@expo/metro-runtime": "~5.0.4",
     "expo": "~53.0.22",
     "expo-status-bar": "~2.2.3",
+    "formik": "^2.4.6",
     "react": "19.0.0",
-    "react-native": "0.79.6",
     "react-dom": "19.0.0",
+    "react-native": "0.79.6",
+    "react-native-paper": "^5.14.5",
+    "react-native-toast-message": "^2.3.3",
     "react-native-web": "^0.20.0",
-    "@expo/metro-runtime": "~5.0.4"
+    "yup": "^1.7.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
