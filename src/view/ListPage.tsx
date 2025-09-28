@@ -1,183 +1,170 @@
-import { Formik } from 'formik';
-import { FlatList, StyleSheet, View } from "react-native";
-import {
-    Button,
-    Card,
-    Divider,
-    FAB,
-    IconButton,
-    List,
-    Modal,
-    Portal,
-    Text,
-    TextInput
-} from 'react-native-paper';
-import Toast from 'react-native-toast-message';
-import * as Yup from 'yup';
-import { ItemController } from "../controller/ItemController";
-import { Item } from "../models/Item";
+import { FlatList, Image, RefreshControl, StyleSheet, View } from "react-native";
+import { ActivityIndicator, Card, Chip, Divider, List, Text } from 'react-native-paper';
+import { PokemonController } from "../controller/PokemonController";
+import { Pokemon } from "../models/Pokemon";
 
-const validationSchema = Yup.object().shape({
-  title: Yup.string()
-    .min(2, 'O título deve ter pelo menos 2 caracteres')
-    .max(50, 'O título deve ter no máximo 50 caracteres')
-    .required('O título é obrigatório'),
-});
+export const ListPage = () => {
+    const { 
+        pokemons, 
+        loading, 
+        error, 
+        refreshPokemons, 
+        loadMorePokemons,
+        showStats,
+        showTypes,
+        showAbilities
+    } = PokemonController();
 
-interface ListPageProps {
-  navigation: any;
-}
 
-export const ListPage = ({ navigation }: ListPageProps) => {
-    const { items, openAddModal, modalVisible, editingItem, closeModal, deleteItem, updateItem, addItem, openEditModal } = ItemController();
-
-    const renderItem = ({ item }: { item: Item }) => (
-        <Card style={styles.card} mode="outlined">
-            <List.Item
-                title={item.title}
-                right={(props) => (
-                    <IconButton
-                        {...props}
-                        icon="pencil"
-                        onPress={() => openEditModal(item)}
-                    />
-                )}
-            />
-        </Card>
-    );
-
-    const handleSubmit = (values: { title: string }, { resetForm }: any) => {
-        try {
-            if (editingItem) {
-                updateItem(values.title, editingItem);
-                Toast.show({
-                    type: 'success',
-                    text1: 'Sucesso!',
-                    text2: 'Item atualizado com sucesso!',
-                });
-            } else {
-                addItem(values.title);
-                Toast.show({
-                    type: 'success',
-                    text1: 'Sucesso!',
-                    text2: 'Item adicionado com sucesso!',
-                });
-            }
-            resetForm();
-            closeModal();
-        } catch (error) {
-            Toast.show({
-                type: 'error',
-                text1: 'Erro!',
-                text2: 'Ocorreu um erro ao salvar o item.',
-            });
-        }
+    const renderItem = ({ item }: { item: Pokemon }) => {
+        
+        return (
+            <Card style={styles.card} mode="outlined">
+                <List.Item
+                    title={item.name.charAt(0).toUpperCase() + item.name.slice(1)}
+                    description={`#${item.id.toString().padStart(3, '0')}`}
+                    titleStyle={[styles.titleText, { fontSize: 16 }]}
+                    descriptionStyle={[styles.descriptionText, { fontSize: 14 }]}
+                    left={() => (
+                        <View style={[styles.imageContainer, { width: 60, height: 60 }]}>
+                            <Image
+                                source={{ uri: item.image }}
+                                style={[styles.pokemonImage, { width: 50, height: 50 }]}
+                                resizeMode="contain"
+                            />
+                        </View>
+                    )}
+                    right={() => (
+                        <View style={[styles.rightContent, { minWidth: 200 }]}>
+                            {item.types && showTypes && (
+                                <View style={styles.typesContainer}>
+                                    {item.types.slice(0, 2).map((type, index) => (
+                                        <Chip 
+                                            key={index}
+                                            style={[styles.typeChip, { height: 24 }]} 
+                                            textStyle={[styles.typeText, { fontSize: 10 }]}
+                                        >
+                                            {type.name}
+                                        </Chip>
+                                    ))}
+                                </View>
+                            )}
+                            {item.stats && showStats && (
+                                <View style={styles.statsContainer}>
+                                    <Chip 
+                                        style={[styles.statChip, { height: 24 }]} 
+                                        textStyle={[styles.statText, { fontSize: 10 }]}
+                                    >
+                                        HP: {item.stats.hp}
+                                    </Chip>
+                                    <Chip 
+                                        style={[styles.statChip, { height: 24 }]} 
+                                        textStyle={[styles.statText, { fontSize: 10 }]}
+                                    >
+                                        ATK: {item.stats.attack}
+                                    </Chip>
+                                </View>
+                            )}
+                            {item.height && item.weight && (
+                                <View style={styles.detailsContainer}>
+                                    <Text style={[
+                                        styles.detailText, 
+                                        { fontSize: 10 }
+                                    ]}>
+                                        📏 {(item.height / 10).toFixed(1)}m
+                                    </Text>
+                                    <Text style={[
+                                        styles.detailText, 
+                                        { fontSize: 10 }
+                                    ]}>
+                                        ⚖️ {(item.weight / 10).toFixed(1)}kg
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
+                    )}
+                />
+            </Card>
+        );
     };
 
-    const handleDelete = (item: Item) => {
-        try {
-            deleteItem(item);
-            Toast.show({
-                type: 'success',
-                text1: 'Sucesso!',
-                text2: 'Item excluído com sucesso!',
-            });
-        } catch (error) {
-            Toast.show({
-                type: 'error',
-                text1: 'Erro!',
-                text2: 'Ocorreu um erro ao excluir o item.',
-            });
-        }
+    const renderFooter = () => {
+        if (!loading) return null;
+        return (
+            <View style={styles.footerLoader}>
+                <ActivityIndicator size="small" />
+                <Text style={styles.loadingText}>Carregando mais Pokémons...</Text>
+            </View>
+        );
     };
+
+    if (error) {
+        return (
+            <View style={styles.errorContainer}>
+                <Text variant="headlineSmall" style={styles.errorTitle}>
+                    Erro ao carregar Pokémons
+                </Text>
+                <Text variant="bodyMedium" style={styles.errorMessage}>
+                    {error}
+                </Text>
+            </View>
+        );
+    }
+
+    const containerPadding = 16;
+    const titleFontSize = 24;
 
     return (
-        <View style={styles.container}>
-            <Text variant="headlineMedium" style={styles.title}>
-                Lista de Itens
-            </Text>
+        <View style={[styles.container, { padding: containerPadding }]}>
+            <View style={styles.header}>
+                <Text 
+                    variant="headlineMedium" 
+                    style={[
+                        styles.title, 
+                        { fontSize: titleFontSize }
+                    ]}
+                >
+                    Pokédex
+                </Text>
+            </View>
 
             <FlatList
-                data={items}
+                data={pokemons}
                 renderItem={renderItem}
-                keyExtractor={item => item.id}
-                contentContainerStyle={styles.listContainer}
+                keyExtractor={item => `pokemon-${item.id}-${item.name}`}
+                contentContainerStyle={[
+                    styles.listContainer, 
+                    { paddingBottom: 20 }
+                ]}
                 ItemSeparatorComponent={() => <Divider style={styles.divider} />}
+                refreshControl={
+                    <RefreshControl
+                        refreshing={loading}
+                        onRefresh={refreshPokemons}
+                        colors={['#1976d2']}
+                        tintColor="#1976d2"
+                    />
+                }
+                onEndReached={loadMorePokemons}
+                onEndReachedThreshold={0.3}
+                ListFooterComponent={renderFooter}
+                showsVerticalScrollIndicator={true}
+                removeClippedSubviews={true}
+                maxToRenderPerBatch={15}
+                updateCellsBatchingPeriod={50}
+                initialNumToRender={15}
+                windowSize={15}
+                getItemLayout={(data, index) => {
+                    const itemHeight = 100;
+                    return {
+                        length: itemHeight,
+                        offset: itemHeight * index,
+                        index,
+                    };
+                }}
+                numColumns={2}
+                key={'phone'}
             />
-
-            <FAB
-                icon="plus"
-                style={styles.fab}
-                onPress={openAddModal}
-            />
-
-            <Portal>
-                <Modal
-                    visible={modalVisible}
-                    onDismiss={closeModal}
-                    contentContainerStyle={styles.modalContainer}
-                >
-                    <Card>
-                        <Card.Title title={editingItem ? 'Editar Item' : 'Novo Item'} />
-                        <Card.Content>
-                            <Formik
-                                initialValues={{ title: editingItem?.title || '' }}
-                                validationSchema={validationSchema}
-                                onSubmit={handleSubmit}
-                                enableReinitialize
-                            >
-                                {({ handleChange, handleBlur, handleSubmit, values, errors, touched }) => (
-                                    <>
-                                        <TextInput
-                                            label="Título do Item"
-                                            value={values.title}
-                                            onChangeText={handleChange('title')}
-                                            onBlur={handleBlur('title')}
-                                            error={touched.title && !!errors.title}
-                                            mode="outlined"
-                                            style={styles.input}
-                                        />
-                                        {touched.title && errors.title && (
-                                            <Text variant="bodySmall" style={styles.errorText}>
-                                                {errors.title}
-                                            </Text>
-                                        )}
-
-                                        <View style={styles.buttonContainer}>
-                                            <Button
-                                                mode="outlined"
-                                                onPress={closeModal}
-                                                style={styles.button}
-                                            >
-                                                Cancelar
-                                            </Button>
-
-                                            {editingItem && (
-                                                <Button
-                                                    mode="contained"
-                                                    buttonColor="#d32f2f"
-                                                    onPress={() => handleDelete(editingItem)}
-                                                    style={styles.button}
-                                                >
-                                                    Excluir
-                                                </Button>
-                                            )}
-
-                                            <Button
-                                                mode="contained"
-                                                onPress={() => handleSubmit()}
-                                                style={styles.button}
-                                            >
-                                                {editingItem ? 'Salvar' : 'Adicionar'}
-                                            </Button>
-                                        </View>
-                                    </>
-                                )}
-                            </Formik>
-                        </Card.Content>
-                    </Card>
-                </Modal>
-            </Portal>
         </View>
     );
 };
@@ -185,48 +172,109 @@ export const ListPage = ({ navigation }: ListPageProps) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        padding: 16,
+        backgroundColor: '#f5f5f5',
+    },
+    header: {
+        alignItems: 'center',
+        marginBottom: 16,
     },
     title: {
-        marginBottom: 16,
         textAlign: 'center',
+        color: '#1976d2',
+        fontWeight: 'bold',
+    },
+    titleText: {
+        fontWeight: 'bold',
+    },
+    descriptionText: {
+        color: '#666',
     },
     listContainer: {
-        paddingBottom: 100,
+        // paddingBottom será definido dinamicamente
     },
     card: {
         marginVertical: 4,
         backgroundColor: '#fff',
+        elevation: 2,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 1,
+        },
+        shadowOpacity: 0.22,
+        shadowRadius: 2.22,
+    },
+    rightContent: {
+        alignItems: 'flex-end',
+        justifyContent: 'center',
+    },
+    typesContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'flex-end',
+        marginBottom: 4,
+    },
+    typeChip: {
+        margin: 2,
+        backgroundColor: '#e3f2fd',
+    },
+    typeText: {
+        color: '#1976d2',
+        fontWeight: 'bold',
+    },
+    detailsContainer: {
+        alignItems: 'flex-end',
+        marginTop: 4,
+    },
+    detailText: {
+        color: '#666',
+        marginVertical: 1,
+    },
+    statsContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'flex-end',
+    },
+    statChip: {
+        margin: 2,
+    },
+    statText: {
+        // fontSize será definido dinamicamente
     },
     divider: {
         marginVertical: 4,
     },
-    fab: {
-        position: 'absolute',
-        margin: 16,
-        right: 0,
-        bottom: 0,
+    imageContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12,
     },
-    modalContainer: {
+    pokemonImage: {
+        // width e height serão definidos dinamicamente
+    },
+    idChip: {
+        marginRight: 8,
+    },
+    footerLoader: {
         padding: 20,
-        margin: 20,
-        borderRadius: 8,
+        alignItems: 'center',
     },
-    input: {
+    loadingText: {
+        marginTop: 8,
+        color: '#666',
+    },
+    errorContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+    },
+    errorTitle: {
+        color: '#d32f2f',
         marginBottom: 8,
     },
-    errorText: {
-        color: '#d32f2f',
-        marginBottom: 16,
-        marginTop: -8,
-    },
-    buttonContainer: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        marginTop: 16,
-    },
-    button: {
-        flex: 1,
-        marginHorizontal: 4,
+    errorMessage: {
+        color: '#666',
+        textAlign: 'center',
     },
 });
