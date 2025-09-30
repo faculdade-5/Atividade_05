@@ -5,7 +5,7 @@ import PokemonService from '../service/PokemonService';
 
 export const PokemonController = () => {
     const { state, dispatch } = useAppContext();
-    const { pokemons, loading, error, hasMore, offset, showStats, showTypes, showAbilities } = state;
+    const { pokemons, loading, error, hasMore, offset, showStats, showTypes } = state;
 
     const loadPokemons = async (reset: boolean = false) => {
         if (loading) return;
@@ -17,7 +17,6 @@ export const PokemonController = () => {
             const currentOffset = reset ? 0 : offset;
             const response = await PokemonService.getPokemonList(20, currentOffset);
             
-            // Enriquecer dados dos Pokémons com informações da PokeAPI
             const enrichedPokemons = await Promise.all(
                 response.results.map(async (pokemon) => {
                     const pokemonId = parseInt(pokemon.url.split('/').slice(-2, -1)[0]);
@@ -27,22 +26,14 @@ export const PokemonController = () => {
                         image: PokemonService.getPokemonImageUrl(pokemonId)
                     };
 
-                    // Adicionar estatísticas se habilitado
                     if (showStats) {
                         enrichedPokemon.stats = await PokemonService.getPokemonStats(pokemonId);
                     }
 
-                    // Adicionar tipos se habilitado
                     if (showTypes) {
                         enrichedPokemon.types = await PokemonService.getPokemonTypes(pokemonId);
                     }
 
-                    // Adicionar habilidades se habilitado
-                    if (showAbilities) {
-                        enrichedPokemon.abilities = await PokemonService.getPokemonAbilities(pokemonId);
-                    }
-
-                    // Adicionar detalhes básicos (altura e peso)
                     const details = await PokemonService.getPokemonDetails(pokemonId);
                     enrichedPokemon.height = details.height;
                     enrichedPokemon.weight = details.weight;
@@ -90,8 +81,7 @@ export const PokemonController = () => {
         refreshPokemons,
         loadMorePokemons,
         showStats,
-        showTypes,
-        showAbilities
+        showTypes
     };
 };
 

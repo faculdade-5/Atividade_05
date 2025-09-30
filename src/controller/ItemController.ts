@@ -1,6 +1,6 @@
+import { useEffect, useState } from "react";
 import { Item } from "../models/Item";
 import ItemService from "../service/ItemService";
-import { useEffect, useState } from "react";
 
 export const ItemController = () => {
     const [items, setItems] = useState<Item[]>([]);
@@ -16,10 +16,6 @@ export const ItemController = () => {
         const allItems = ItemService.getItems();
         setItems([...allItems]);
     };
-
-    const getItems = () => {
-        return ItemService.getItems();
-    }
 
     const addItem = (inputText: string) => {
         ItemService.addItem(inputText);
@@ -56,7 +52,6 @@ export const ItemController = () => {
 
     return {
         items,
-        getItems,
         addItem,
         closeModal,
         openAddModal,

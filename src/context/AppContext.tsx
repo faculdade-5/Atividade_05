@@ -9,7 +9,6 @@ export interface AppState {
     offset: number;
     showStats: boolean;
     showTypes: boolean;
-    showAbilities: boolean;
 }
 
 export type AppAction =
@@ -29,7 +28,6 @@ const initialState: AppState = {
     offset: 0,
     showStats: true,
     showTypes: true,
-    showAbilities: false
 };
 
 const appReducer = (state: AppState, action: AppAction): AppState => {

@@ -17,7 +17,6 @@ import * as Yup from 'yup';
 import { ItemController } from "../controller/ItemController";
 import { Item } from "../models/Item";
 
-// Schema de validação
 const validationSchema = Yup.object().shape({
   title: Yup.string()
     .min(2, 'O título deve ter pelo menos 2 caracteres')
@@ -189,7 +188,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     listContainer: {
-        paddingBottom: 100, // Espaço para o FAB
+        paddingBottom: 100,
     },
     card: {
         marginVertical: 4,
